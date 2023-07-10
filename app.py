@@ -11,9 +11,9 @@ from wtforms.validators import DataRequired, Email, EqualTo
 # ---------------- Necessary definitions -------------------------  
 appi = Flask(__name__)
 appi.config['SECRET_KEY']="thisissecret"
-username = "postgres"
-password = "152545"
-dbname = "todo_deneme1"
+username = "..."
+password = "..."
+dbname = "..."
 appi.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{username}:{password}@localhost/{dbname}"
 db=SQLAlchemy(appi)  
 migrate = Migrate(appi, db)
