@@ -5,6 +5,8 @@ CSDS Eğitimi Programlama Bölümü Bitirme Projesinin daha detaylı, eğitime y
 1. FlaskForms Kullanmak: WTForms ve Flask uyumluluğu ile güvenli formlar oluşturabiliyoruz. Formlar sadece bizim istediğimiz şekillerde ve daha etkin kullanılabiliyor. Ayrıca aynı kütüphanenin CSRF için de bir çözümü var, onu da kullandım.
 2. Flask-Login Kütüphanesi: Bu kütüphane ile yetkisiz erişimi ve kullanıcı yetkilendirmesini sağladım. Çok basit bir kullanımı var.
 3. Werkzeug.security ile parola hashleri üretmek: Veritabanı üzerinde parolayı sha-256 kullanarak hashleyerek saklama. Bu hem veri tabanına erişen kişinin parolayı bulamamasını, hem de SQL Enjeksiyonu ile yetkisiz kullanıcı girişini önlemek amaçlı yapıldı.
+
+
 Bunlar haricinde bizden istenen Jinja Template kullanımı, PostgreSQL-Flask-SQLAlchemy kullanımı gibi detaylar mevcuttur. Bunun haricinde Flask-Session kullanmak yerine, daha basit ancak daha az secure olan Flask'ın kendi session özelliğini kullandım. Bunu daha çok kullanıcı id'si kullanılan işlerde session boyunca kullanılabilir olması için kullandım. Son olarak login_required decorator'ü ile yetkisiz kullanıcı özelindeki sayfalara erişilmesini önledim.
 
 ## Veritabanı kurulumu ve tam çalıştırma
