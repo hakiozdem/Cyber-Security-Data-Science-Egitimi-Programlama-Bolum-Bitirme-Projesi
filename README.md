@@ -20,15 +20,16 @@ Web site haritasını şu şekilde gösterebilirim:
 - Index
 - Kayıt ol
 - Giriş Yap
- * User Index
- * Projeleri Göster
-  - Projedeki işleri göster
-  - Projedeki tek bir işi göster
-  - Projedeki işi sil
-  - Projedeki işi düzenle
-  - Projeye yeni iş ekle
- * Add new Project
- * Kullanıcı bilgilerini düzenle
-  - Parolayı düzenle
+  * User Index
+  * Projeleri Göster
+    - Projedeki işleri göster
+    - Projedeki tek bir işi göster
+    - Projedeki işi sil
+    - Projedeki işi düzenle
+    - Projeye yeni iş ekle
+  * Add new Project
+  * Proje ve içindeki işleri sil
+  * Kullanıcı bilgilerini düzenle
+    - Parolayı düzenle
 
 
