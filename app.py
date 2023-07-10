@@ -14,7 +14,7 @@ appi.config['SECRET_KEY']="thisissecret"
 username = "..."
 password = "..."
 dbname = "..."
-appi.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{username}:{password}@localhost/{dbname}"
+appi.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{username}:{password}@localhost/{dbname}" # Veritabanı yolu
 db=SQLAlchemy(appi)  
 migrate = Migrate(appi, db)
 CSRFProtect(appi)
@@ -159,7 +159,7 @@ def user_index():
 
 @appi.route("/projects")
 @login_required
-def show_projects():
+def show_projects(): # Tüm Projeleri göster
     session["project_id"]=None
     projects = Project.query.filter_by(user_id=session.get("user_id")).with_entities(Project.project_name,Project.id).all()
     return render_template("user/projects.html",projects=projects)
