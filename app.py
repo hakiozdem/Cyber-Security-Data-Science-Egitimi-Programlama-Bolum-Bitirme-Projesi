@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, session
+from flask import Flask, render_template, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager,UserMixin, login_user, login_required, logout_user
@@ -7,13 +7,15 @@ from flask_migrate import Migrate
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField,BooleanField, TextAreaField
 from wtforms.validators import DataRequired, Email, EqualTo
+import redis
+import json
 
 # ---------------- Necessary definitions -------------------------  
 appi = Flask(__name__)
 appi.config['SECRET_KEY']="thisissecret"
-username = "..."
-password = "..."
-dbname = "..."
+username = "postgres"
+password = "postgres"
+dbname = "todos"
 appi.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{username}:{password}@localhost/{dbname}" # Veritabanı yolu
 db=SQLAlchemy(appi)  
 migrate = Migrate(appi, db)
@@ -21,6 +23,7 @@ CSRFProtect(appi)
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(appi)
+redis_client = redis.StrictRedis(host='localhost',port=6379,decode_responses=True)
 
 # ---------------- Models -------------------------
 class User(UserMixin,db.Model):
@@ -161,7 +164,8 @@ def user_index():
 @login_required
 def show_projects(): # Tüm Projeleri göster
     session["project_id"]=None
-    projects = Project.query.filter_by(user_id=session.get("user_id")).with_entities(Project.project_name,Project.id).all()
+    user_id=session.get("user_id")
+    projects = Project.query.filter_by(user_id=session.get("user_id")).with_entities(Project.project_name,Project.id, Project.project_description).all()
     return render_template("user/projects.html",projects=projects)
 
 @appi.route("/add_new_project",methods=["GET","POST"])
@@ -175,6 +179,9 @@ def add_new_project():
         project = Project(project_name,project_description,user_id)
         db.session.add(project)
         db.session.commit()
+        # project_temp = Project.query.order_by(Project.project_id.desc()).first()
+        # json_data = jsonify({'project_id': project_temp.id, 'project_name': project.project_name,'project_description': project.project_description,'user_id':project.user_id})
+        # redis_client.set(f"projects:{user_id}",json_data)
         return redirect(url_for("show_projects"))
     return render_template("user/add_new_project.html",form=form)
 
@@ -199,8 +206,18 @@ def my_project(project_id):
 @appi.route("/my_project/jobs/<int:job_id>")
 @login_required
 def details(job_id):
-    job = Job.query.filter_by(id=job_id).first()
-    return render_template("user/details.html",job=job)
+    cached_data = redis_client.get(f"jobs:{job_id}")
+    if cached_data:
+        job = json.loads(cached_data)
+        print(job)
+        message= "Data From Cache"
+    else:
+        job = Job.query.filter_by(id=job_id).first()
+        data = {'id':job_id,'job_name':job.job_name,'job_description':job.job_description,'is_in_progress':job.is_in_progress,'is_finished':job.is_finished}
+        json_data = json.dumps(data)
+        redis_client.setex(f"jobs:{job_id}",60,json_data)
+        message="Veri Düz alındı" 
+    return render_template("user/details.html",job=job,message=message)
 
 @appi.route("/my_project/jobs/update/<int:job_id>",methods=["GET","POST"])
 @login_required
@@ -208,11 +225,15 @@ def update_job(job_id):
     form = JobUpdateForm()
     job = Job.query.filter_by(id=job_id).first()
     if form.validate_on_submit():
+        # redis_client.delete(f"jobs:{job_id}")
         job.job_name=form.job_name.data
         job.job_description=form.job_description.data
         job.is_in_progress = form.is_in_progress.data
         job.is_finished = form.is_finished.data
         db.session.commit()
+        data = {'id':job_id,'job_name':job.job_name,'job_description':job.job_description,'is_in_progress':job.is_in_progress,'is_finished':job.is_finished}
+        json_data = json.dumps(data)
+        redis_client.setex(f"jobs:{job_id}",60,json_data)
         return redirect(url_for("my_project",project_id=session.get("project_id")))
     return render_template("user/update_job.html",job=job,form=form)
 
@@ -259,6 +280,12 @@ def add_new_job():
         job = Job(job_name,job_description,session.get("project_id"))
         db.session.add(job)
         db.session.commit()
+        job_temp = Job.query.order_by(Job.id.desc()).first()
+        print(job_temp)
+        data = {'id':job_temp.id,'job_name':job.job_name,'job_description':job.job_description,'is_in_progress':job.is_in_progress,'is_finished':job.is_finished}
+        job_id = int(job_temp.id)
+        json_data = json.dumps(data)
+        redis_client.set(f"jobs:{job_id}",json_data)
         return redirect(url_for("my_project",project_id=session.get("project_id")))
     return render_template("user/add_new_job.html",form=form)
 
@@ -269,6 +296,8 @@ def delete_project(project_id):
     jobs=Job.query.filter_by(id=project_id).all()
     for job in jobs:
         db.session.delete(job)
+    redis_client.delete(f"jobs:{project_id}")
+    redis_client.delete(f"projects:{project_id}")
     db.session.delete(project)
     db.session.commit()
     return redirect(url_for("show_projects"))
@@ -277,11 +306,11 @@ def delete_project(project_id):
 @login_required
 def delete_job(job_id):    
     job = Job.query.filter_by(id=job_id).first()
+    redis_client.delete(f"jobs:{job_id}")
     db.session.delete(job)
     db.session.commit()
     return redirect(url_for("my_project",project_id=session.get("project_id")))
     
 if __name__=="__main__":
-    with appi.app_context():
-        db.create_all()
+    db.create_all()
     appi.run()
