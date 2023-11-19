@@ -9,21 +9,24 @@ from wtforms import StringField, PasswordField, SubmitField,BooleanField, TextAr
 from wtforms.validators import DataRequired, Email, EqualTo
 import redis
 import json
+import os
 
 # ---------------- Necessary definitions -------------------------  
 appi = Flask(__name__)
 appi.config['SECRET_KEY']="thisissecret"
-username = "postgres"
-password = "postgres"
-dbname = "todos"
-appi.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{username}:{password}@localhost/{dbname}" # Veritabanı yolu
+# username = "postgres"
+# password = "postgres"
+# dbname = "todos"
+# appi.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+appi.config.from_pyfile('config.cfg')
 db=SQLAlchemy(appi)  
 migrate = Migrate(appi, db)
 CSRFProtect(appi)
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(appi)
-redis_client = redis.StrictRedis(host='localhost',port=6379,decode_responses=True)
+redis_client = redis.StrictRedis(host='redis-service',port=6379,decode_responses=True)
+application=appi
 
 # ---------------- Models -------------------------
 class User(UserMixin,db.Model):
